@@ -118,6 +118,9 @@ type Header struct {
 
 	// RequestsHash was added by EIP-7685 and is ignored in legacy headers.
 	RequestsHash *common.Hash `json:"requestsHash" rlp:"optional"`
+
+	// DelayedStateRoot is the state root of the parent block.
+	DelayedStateRoot *common.Hash `json:"delayedStateRoot" rlp:"optional"`
 }
 
 // Used for Encoding and Decoding of the Extra Data Field
@@ -402,6 +405,10 @@ func CopyHeader(h *Header) *Header {
 	if h.RequestsHash != nil {
 		cpy.RequestsHash = new(common.Hash)
 		*cpy.RequestsHash = *h.RequestsHash
+	}
+	if h.DelayedStateRoot != nil {
+		cpy.DelayedStateRoot = new(common.Hash)
+		*cpy.DelayedStateRoot = *h.DelayedStateRoot
 	}
 	return &cpy
 }

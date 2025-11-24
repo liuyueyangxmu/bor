@@ -888,6 +888,7 @@ type BorConfig struct {
 	RioBlock                        *big.Int               `json:"rioBlock"`                   // Rio switch block (nil = no fork, 0 = already on rio)
 	MadhugiriBlock                  *big.Int               `json:"madhugiriBlock"`             // Madhugiri switch block (nil = no fork, 0 = already on madhugiri)
 	MadhugiriProBlock               *big.Int               `json:"madhugiriProBlock"`          // MadhugiriPro switch block (nil = no fork, 0 = already on madhugiriPro)
+	StateRootDelayBlock             *big.Int               `json:"stateRootDelayBlock"`        // StateRootDelay switch block (nil = no fork, 0 = already on stateRootDelay) - EIP-7862 Delayed State Root PoC
 }
 
 // String implements the stringer interface, returning the consensus engine details.
@@ -945,6 +946,12 @@ func (c *BorConfig) IsMadhugiri(number *big.Int) bool {
 
 func (c *BorConfig) IsMadhugiriPro(number *big.Int) bool {
 	return isBlockForked(c.MadhugiriProBlock, number)
+}
+
+// IsStateRootDelay returns whether num is either equal to the StateRootDelay (Delayed State Root) fork block or greater.
+// This is a PoC implementation for EIP-7862.
+func (c *BorConfig) IsStateRootDelay(number *big.Int) bool {
+	return isBlockForked(c.StateRootDelayBlock, number)
 }
 
 // // TODO: modify this function once the block number is finalized
@@ -1648,6 +1655,7 @@ type Rules struct {
 	IsVerkle                                                bool
 	IsMadhugiri                                             bool
 	IsMadhugiriPro                                          bool
+	IsStateRootDelay                                        bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -1681,5 +1689,6 @@ func (c *ChainConfig) Rules(num *big.Int, isMerge bool, timestamp uint64) Rules 
 		IsEIP4762:        c.IsVerkle(num),
 		IsMadhugiri:      c.Bor != nil && c.Bor.IsMadhugiri(num),
 		IsMadhugiriPro:   c.Bor != nil && c.Bor.IsMadhugiriPro(num),
+		IsStateRootDelay: c.Bor != nil && c.Bor.IsStateRootDelay(num),
 	}
 }

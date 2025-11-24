@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -31,12 +32,14 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Extra            hexutil.Bytes   `json:"extraData"        gencodec:"required"`
 		MixDigest        common.Hash     `json:"mixHash"`
 		Nonce            BlockNonce      `json:"nonce"`
+		ActualTime       time.Time       `json:"-" rlp:"-"`
 		BaseFee          *hexutil.Big    `json:"baseFeePerGas" rlp:"optional"`
 		WithdrawalsHash  *common.Hash    `json:"withdrawalsRoot" rlp:"optional"`
 		BlobGasUsed      *hexutil.Uint64 `json:"blobGasUsed" rlp:"optional"`
 		ExcessBlobGas    *hexutil.Uint64 `json:"excessBlobGas" rlp:"optional"`
 		ParentBeaconRoot *common.Hash    `json:"parentBeaconBlockRoot" rlp:"optional"`
 		RequestsHash     *common.Hash    `json:"requestsHash" rlp:"optional"`
+		DelayedStateRoot *common.Hash    `json:"delayedStateRoot" rlp:"optional"`
 		Hash             common.Hash     `json:"hash"`
 	}
 	var enc Header
@@ -55,12 +58,14 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Extra = h.Extra
 	enc.MixDigest = h.MixDigest
 	enc.Nonce = h.Nonce
+	enc.ActualTime = h.ActualTime
 	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 	enc.WithdrawalsHash = h.WithdrawalsHash
 	enc.BlobGasUsed = (*hexutil.Uint64)(h.BlobGasUsed)
 	enc.ExcessBlobGas = (*hexutil.Uint64)(h.ExcessBlobGas)
 	enc.ParentBeaconRoot = h.ParentBeaconRoot
 	enc.RequestsHash = h.RequestsHash
+	enc.DelayedStateRoot = h.DelayedStateRoot
 	enc.Hash = h.Hash()
 	return json.Marshal(&enc)
 }
@@ -83,12 +88,14 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Extra            *hexutil.Bytes  `json:"extraData"        gencodec:"required"`
 		MixDigest        *common.Hash    `json:"mixHash"`
 		Nonce            *BlockNonce     `json:"nonce"`
+		ActualTime       *time.Time      `json:"-" rlp:"-"`
 		BaseFee          *hexutil.Big    `json:"baseFeePerGas" rlp:"optional"`
 		WithdrawalsHash  *common.Hash    `json:"withdrawalsRoot" rlp:"optional"`
 		BlobGasUsed      *hexutil.Uint64 `json:"blobGasUsed" rlp:"optional"`
 		ExcessBlobGas    *hexutil.Uint64 `json:"excessBlobGas" rlp:"optional"`
 		ParentBeaconRoot *common.Hash    `json:"parentBeaconBlockRoot" rlp:"optional"`
 		RequestsHash     *common.Hash    `json:"requestsHash" rlp:"optional"`
+		DelayedStateRoot *common.Hash    `json:"delayedStateRoot" rlp:"optional"`
 	}
 	var dec Header
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -151,6 +158,9 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Nonce != nil {
 		h.Nonce = *dec.Nonce
 	}
+	if dec.ActualTime != nil {
+		h.ActualTime = *dec.ActualTime
+	}
 	if dec.BaseFee != nil {
 		h.BaseFee = (*big.Int)(dec.BaseFee)
 	}
@@ -168,6 +178,9 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	}
 	if dec.RequestsHash != nil {
 		h.RequestsHash = dec.RequestsHash
+	}
+	if dec.DelayedStateRoot != nil {
+		h.DelayedStateRoot = dec.DelayedStateRoot
 	}
 	return nil
 }
