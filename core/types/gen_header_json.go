@@ -21,6 +21,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		UncleHash        common.Hash     `json:"sha3Uncles"       gencodec:"required"`
 		Coinbase         common.Address  `json:"miner"`
 		Root             common.Hash     `json:"stateRoot"        gencodec:"required"`
+		DelayedStateRoot common.Hash     `json:"delayedStateRoot" gencodec:"required"`
 		TxHash           common.Hash     `json:"transactionsRoot" gencodec:"required"`
 		ReceiptHash      common.Hash     `json:"receiptsRoot"     gencodec:"required"`
 		Bloom            Bloom           `json:"logsBloom"        gencodec:"required"`
@@ -39,7 +40,6 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		ExcessBlobGas    *hexutil.Uint64 `json:"excessBlobGas" rlp:"optional"`
 		ParentBeaconRoot *common.Hash    `json:"parentBeaconBlockRoot" rlp:"optional"`
 		RequestsHash     *common.Hash    `json:"requestsHash" rlp:"optional"`
-		DelayedStateRoot *common.Hash    `json:"delayedStateRoot" rlp:"optional"`
 		Hash             common.Hash     `json:"hash"`
 	}
 	var enc Header
@@ -47,6 +47,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.UncleHash = h.UncleHash
 	enc.Coinbase = h.Coinbase
 	enc.Root = h.Root
+	enc.DelayedStateRoot = h.DelayedStateRoot
 	enc.TxHash = h.TxHash
 	enc.ReceiptHash = h.ReceiptHash
 	enc.Bloom = h.Bloom
@@ -65,7 +66,6 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.ExcessBlobGas = (*hexutil.Uint64)(h.ExcessBlobGas)
 	enc.ParentBeaconRoot = h.ParentBeaconRoot
 	enc.RequestsHash = h.RequestsHash
-	enc.DelayedStateRoot = h.DelayedStateRoot
 	enc.Hash = h.Hash()
 	return json.Marshal(&enc)
 }
@@ -77,6 +77,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		UncleHash        *common.Hash    `json:"sha3Uncles"       gencodec:"required"`
 		Coinbase         *common.Address `json:"miner"`
 		Root             *common.Hash    `json:"stateRoot"        gencodec:"required"`
+		DelayedStateRoot *common.Hash    `json:"delayedStateRoot" gencodec:"required"`
 		TxHash           *common.Hash    `json:"transactionsRoot" gencodec:"required"`
 		ReceiptHash      *common.Hash    `json:"receiptsRoot"     gencodec:"required"`
 		Bloom            *Bloom          `json:"logsBloom"        gencodec:"required"`
@@ -95,7 +96,6 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		ExcessBlobGas    *hexutil.Uint64 `json:"excessBlobGas" rlp:"optional"`
 		ParentBeaconRoot *common.Hash    `json:"parentBeaconBlockRoot" rlp:"optional"`
 		RequestsHash     *common.Hash    `json:"requestsHash" rlp:"optional"`
-		DelayedStateRoot *common.Hash    `json:"delayedStateRoot" rlp:"optional"`
 	}
 	var dec Header
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -116,6 +116,10 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'stateRoot' for Header")
 	}
 	h.Root = *dec.Root
+	if dec.DelayedStateRoot == nil {
+		return errors.New("missing required field 'delayedStateRoot' for Header")
+	}
+	h.DelayedStateRoot = *dec.DelayedStateRoot
 	if dec.TxHash == nil {
 		return errors.New("missing required field 'transactionsRoot' for Header")
 	}
@@ -178,9 +182,6 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	}
 	if dec.RequestsHash != nil {
 		h.RequestsHash = dec.RequestsHash
-	}
-	if dec.DelayedStateRoot != nil {
-		h.DelayedStateRoot = dec.DelayedStateRoot
 	}
 	return nil
 }

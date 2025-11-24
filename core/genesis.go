@@ -548,6 +548,11 @@ func (g *Genesis) toBlockWithRoot(root common.Hash) *types.Block {
 			head.RequestsHash = &types.EmptyRequestsHash
 		}
 	}
+
+	if g.Config != nil && g.Config.Bor != nil && g.Config.Bor.IsStateRootDelay(new(big.Int).SetUint64(g.Number)) {
+		head.DelayedStateRoot = common.Hash{}
+	}
+
 	return types.NewBlock(head, &types.Body{Withdrawals: withdrawals}, nil, trie.NewStackTrie(nil))
 }
 

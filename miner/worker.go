@@ -234,6 +234,9 @@ type worker struct {
 	resubmitIntervalCh chan time.Duration
 	resubmitAdjustCh   chan *intervalAdjust
 
+	// Channel for parallel delayed state root calculation.
+	delayedStateRootChan chan common.Hash
+
 	wg sync.WaitGroup
 
 	current *environment // An environment for current running cycle.
@@ -1388,6 +1391,18 @@ func (w *worker) prepareWork(genParams *generateParams, witness bool) (*environm
 		log.Error("Failed to create sealing context", "err", err)
 		return nil, err
 	}
+
+	// Calculate delayed state root from parent's state in parallel.
+	if w.chainConfig.Bor != nil && w.chainConfig.Bor.IsStateRootDelay(header.Number) {
+		w.delayedStateRootChan = make(chan common.Hash, 1)
+		parentStateCopy := env.state.Copy()
+		isEIP158 := w.chainConfig.IsEIP158(parent.Number)
+		go func() {
+			calculatedDelayedRoot := parentStateCopy.IntermediateRoot(isEIP158)
+			w.delayedStateRootChan <- calculatedDelayedRoot
+		}()
+	}
+
 	if header.ParentBeaconRoot != nil {
 		context := core.NewEVMBlockContext(header, w.chain, nil)
 		vmenv := vm.NewEVM(context, env.state, w.chainConfig, vm.Config{})
@@ -1526,10 +1541,23 @@ func (w *worker) generateWork(params *generateParams, witness bool) *newPayloadR
 
 	var block *types.Block
 	block, work.receipts, err = w.engine.FinalizeAndAssemble(w.chain, work.header, work.state, &body, work.receipts)
-
 	if err != nil {
 		return &newPayloadResult{err: err}
 	}
+
+	// Wait for parallel delayed state root calculation to complete.
+	delayedStateRootChan := w.delayedStateRootChan
+	if delayedStateRootChan != nil {
+		select {
+		case delayedRoot := <-delayedStateRootChan:
+			work.header.DelayedStateRoot = delayedRoot
+		case <-time.After(w.newpayloadTimeout):
+			log.Warn("Timeout waiting for delayed state root in generateWork", "block", work.header.Number.Uint64())
+		}
+		// Clean up the channel after use.
+		w.delayedStateRootChan = nil
+	}
+
 	return &newPayloadResult{
 		block:    block,
 		fees:     totalFees(block, work.receipts),
@@ -1624,6 +1652,20 @@ func (w *worker) commitWork(interrupt *atomic.Int32, noempty bool, timestamp int
 		work.discard()
 		return
 	}
+
+	// Wait for parallel delayed state root calculation to complete.
+	delayedStateRootChan := w.delayedStateRootChan
+	if delayedStateRootChan != nil {
+		select {
+		case delayedRoot := <-delayedStateRootChan:
+			work.header.DelayedStateRoot = delayedRoot
+		case <-time.After(w.newpayloadTimeout):
+			log.Warn("Timeout waiting for delayed state root in commitWork", "block", work.header.Number.Uint64())
+		}
+		// Clean up the channel after use.
+		w.delayedStateRootChan = nil
+	}
+
 	// Submit the generated block for consensus sealing.
 	_ = w.commit(work.copy(), w.fullTaskHook, true, start)
 
