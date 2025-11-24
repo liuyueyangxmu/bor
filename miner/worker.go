@@ -1395,10 +1395,14 @@ func (w *worker) prepareWork(genParams *generateParams, witness bool) (*environm
 	// Calculate delayed state root from parent's state in parallel.
 	if w.chainConfig.Bor != nil && w.chainConfig.Bor.IsStateRootDelay(header.Number) {
 		w.delayedStateRootChan = make(chan common.Hash, 1)
-		parentStateCopy := env.state.Copy()
+		statedb, err := state.New(parent.Root, env.state.Database())
+		if err != nil {
+			log.Error("Failed to create parent state", "err", err)
+			return nil, err
+		}
 		isEIP158 := w.chainConfig.IsEIP158(parent.Number)
 		go func() {
-			calculatedDelayedRoot := parentStateCopy.IntermediateRoot(isEIP158)
+			calculatedDelayedRoot := statedb.IntermediateRoot(isEIP158)
 			w.delayedStateRootChan <- calculatedDelayedRoot
 		}()
 	}
