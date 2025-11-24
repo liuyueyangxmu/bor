@@ -536,6 +536,7 @@ func (ethash *Ethash) SealHash(header *types.Header) (hash common.Hash) {
 		header.UncleHash,
 		header.Coinbase,
 		header.Root,
+		header.DelayedStateRoot,
 		header.TxHash,
 		header.ReceiptHash,
 		header.Bloom,

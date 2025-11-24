@@ -163,6 +163,7 @@ func encodeSigHeader(w io.Writer, header *types.Header, c *params.BorConfig) {
 		header.UncleHash,
 		header.Coinbase,
 		header.Root,
+		header.DelayedStateRoot,
 		header.TxHash,
 		header.ReceiptHash,
 		header.Bloom,
