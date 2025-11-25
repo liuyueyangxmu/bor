@@ -163,7 +163,6 @@ func encodeSigHeader(w io.Writer, header *types.Header, c *params.BorConfig) {
 		header.UncleHash,
 		header.Coinbase,
 		header.Root,
-		header.DelayedStateRoot,
 		header.TxHash,
 		header.ReceiptHash,
 		header.Bloom,
@@ -1210,7 +1209,10 @@ func (c *Bor) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *typ
 	}
 
 	// No block rewards in PoA, so the state remains as it is
-	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	// Skip root calculation for StateRootDelayBlock and blocks after it.
+	if !c.config.IsStateRootDelay(header.Number) {
+		header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	}
 
 	// Uncles are dropped
 	header.UncleHash = types.CalcUncleHash(nil)

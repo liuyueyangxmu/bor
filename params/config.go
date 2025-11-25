@@ -948,8 +948,6 @@ func (c *BorConfig) IsMadhugiriPro(number *big.Int) bool {
 	return isBlockForked(c.MadhugiriProBlock, number)
 }
 
-// IsStateRootDelay returns whether num is either equal to the StateRootDelay (Delayed State Root) fork block or greater.
-// This is a PoC implementation for EIP-7862.
 func (c *BorConfig) IsStateRootDelay(number *big.Int) bool {
 	return isBlockForked(c.StateRootDelayBlock, number)
 }

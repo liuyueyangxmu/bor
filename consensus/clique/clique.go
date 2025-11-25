@@ -795,7 +795,6 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 		header.UncleHash,
 		header.Coinbase,
 		header.Root,
-		header.DelayedStateRoot,
 		header.TxHash,
 		header.ReceiptHash,
 		header.Bloom,
