@@ -1394,8 +1394,7 @@ func (w *worker) prepareWork(genParams *generateParams, witness bool) (*environm
 
 	// For StateRootDelayBlock itself, use parent's root.
 	// For blocks after StateRootDelayBlock, calculate state root from parent's state in parallel.
-	if w.chainConfig.Bor != nil && w.chainConfig.Bor.StateRootDelayBlock != nil &&
-		header.Number.Cmp(w.chainConfig.Bor.StateRootDelayBlock) >= 0 {
+	if w.chainConfig.Bor != nil && w.chainConfig.Bor.StateRootDelayBlock != nil && header.Number.Cmp(w.chainConfig.Bor.StateRootDelayBlock) >= 0 {
 		w.stateRootChan = make(chan common.Hash, 1)
 		if header.Number.Cmp(w.chainConfig.Bor.StateRootDelayBlock) == 0 {
 			parentRoot := parent.Root
@@ -1403,10 +1402,27 @@ func (w *worker) prepareWork(genParams *generateParams, witness bool) (*environm
 				w.stateRootChan <- parentRoot
 			}()
 		} else {
-			parentStateCopy := env.state.Copy()
-			isEIP158 := w.chainConfig.IsEIP158(parent.Number)
+			parentBlock := w.chain.GetBlock(parent.Hash(), parent.Number.Uint64())
 			go func() {
-				calculatedStateRoot := parentStateCopy.IntermediateRoot(isEIP158)
+				if parentBlock == nil {
+					log.Error("Failed to get parent block for delayed state root")
+					w.stateRootChan <- common.Hash{}
+					return
+				}
+				parentState, err := w.chain.StateAt(parent.Root)
+				if err != nil {
+					log.Error("Failed to get parent state for delayed root", "err", err)
+					w.stateRootChan <- common.Hash{}
+					return
+				}
+				_, err = w.chain.Processor().Process(parentBlock, parentState, vm.Config{}, nil, nil)
+				if err != nil {
+					log.Error("Failed to process parent block for delayed root", "err", err)
+					w.stateRootChan <- common.Hash{}
+					return
+				}
+				isEIP158 := w.chainConfig.IsEIP158(parent.Number)
+				calculatedStateRoot := parentState.IntermediateRoot(isEIP158)
 				w.stateRootChan <- calculatedStateRoot
 			}()
 		}
