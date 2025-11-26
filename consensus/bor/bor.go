@@ -1209,7 +1209,10 @@ func (c *Bor) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *typ
 	}
 
 	// No block rewards in PoA, so the state remains as it is
+	first_ir_start := time.Now()
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	first_ir_elapsed := time.Since(first_ir_start)
+	log.Info("IntermediateRoot timing (FinalizeAndAssemble)", "duration", first_ir_elapsed, "duration_ms", first_ir_elapsed.Milliseconds())
 
 	// Uncles are dropped
 	header.UncleHash = types.CalcUncleHash(nil)

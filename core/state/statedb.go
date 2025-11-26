@@ -1606,7 +1606,10 @@ func (s *StateDB) commit(deleteEmptyObjects bool, noStorageWiping bool) (*stateU
 		return nil, fmt.Errorf("commit aborted due to earlier error: %v", s.dbErr)
 	}
 	// Finalize any pending changes and merge everything into the tries
+	second_ir_start := time.Now()
 	s.IntermediateRoot(deleteEmptyObjects)
+	second_ir_elapsed := time.Since(second_ir_start)
+	log.Info("IntermediateRoot timing (commit)", "duration", second_ir_elapsed, "duration_ms", second_ir_elapsed.Milliseconds())
 
 	// Short circuit if any error occurs within the IntermediateRoot.
 	if s.dbErr != nil {
